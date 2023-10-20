@@ -32,24 +32,25 @@ def load_and_split_essay(file_path: str):
     #     print("!!!!!", i, page, "\n")
     return essay_splited
 
-weaviate_client = weaviate.Client(
-    url=WEAVIATE_URL,
-    auth_client_secret=weaviate.AuthApiKey(WEAVIATE_API_KEY)
-)
-splited_essay = load_and_split_essay(essay_path)
-embedding = OpenAIEmbeddings(chunk_size=4000)
+# 创建vectorstore
+# 创建retriever chain
+def ingest_essay(essay_path):
+    essay_splited = load_and_split_essay(essay_path)
+    weaviate_client = weaviate.Client(
+        url=WEAVIATE_URL,
+        auth_client_secret=weaviate.AuthApiKey(WEAVIATE_API_KEY)
+    )
+    embedding = OpenAIEmbeddings(chunk_size=4000)
+    vector_store = Weaviate.from_documents(essay_splited, embedding, client=weaviate_client, index_name="essay")
+    # vector_store = Weaviate.from_texts(
+    #     texts=essay_splited,
+    #     embedding=embedding,
+    #     client=weaviate_client,
+    #     index_name="essay_langchain",
+    # )
+    retriever = vector_store.as_retriever(search_kwargs=dict(k=6))
+    return retriever
 
-# 下面是使用一个weaviate 向量数据库对方法
-# vector_store = Weaviate(
-#     client=weaviate_client,
-#     index_name="SPESC",  # 指定Weaviate中的索引名称，用于存储和检索向量数据。
-#     text_key="text",
-#     embedding=OpenAIEmbeddings(chunk_size=200),
-#     by_text=False,
-#     # attributes=["source", "title"]
-# )
 
-# 这是通过document和embedding来初始化一个向量数据库
-vector_store = Weaviate.from_documents(splited_essay, embedding, client=weaviate_client, by_text=False, index_name="SPESC")
-# print(type(weaviate_client))
-
+if "__name__" == "__main__":
+    ingest_essay()
